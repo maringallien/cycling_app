@@ -12,7 +12,7 @@ function App() {
         return <HomeScreen />
       case 'activity':
         return <div className="flex items-center justify-center h-full text-gray-400">Activity (coming soon) </div>
-      case 'teritory':
+      case 'territory':
         return <div className="flex items-center justify-center h-full text-gray-400">Territory (coming soon)</div>
       case 'community':
         return <div className="flex items-center justify-center h-full text-gray-400">Community (coming soon)</div>

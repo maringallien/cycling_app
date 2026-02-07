@@ -8,7 +8,7 @@ const tabs = [
 
 function BottomNav({ currentTab, onTabChange }) {
     return (
-        <div className="flex border-t-2 birder-gray-800 bg-white">
+        <div className="flex border-t-2 border-gray-800 bg-white">
             {tabs.map((tab) => (
                 <button
                     key={tab.id}
@@ -26,4 +26,4 @@ function BottomNav({ currentTab, onTabChange }) {
     )
 }
 
-export default BottonNav
+export default BottomNav
