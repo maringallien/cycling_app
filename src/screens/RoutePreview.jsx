@@ -63,8 +63,7 @@ function RoutePreview({ destination, mode, onStartRide, onBack }) {
   }
 
   const modeInfo = modeLabels[mode] || modeLabels.safe
-  const setpsToShow = showAllSteps ? route.steps : route.steps.slice(0, 3)
-
+const stepsToShow = showAllSteps ? route.steps : route.steps.slice(0, 3)
   return (
     <div className="relative h-full flex flex-col bg-gray-100">
       

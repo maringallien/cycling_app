@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import RoutePreview from './RoutePreview'
+import ActiveNavigation from './ActiveNavigation'
 
 function HomeScreen() {
   const [selectedMode, setSelectedMode] = useState('safe')
   const [searchText, setSearchText] = useState('')
   const [showHeatMap, setShowHeatMap] = useState(false)
   const [searchError, setSearchError] = useState('')
-  const [currentView, setCurrentView] = useState('home') // 'home' or 'preview'
+  const [currentView, setCurrentView] = useState('home') // 'home', 'preview', or 'riding'
 
   function handleSearch() {
     if (searchText.trim() === '') {
@@ -28,7 +29,22 @@ function HomeScreen() {
   }
 
   function handleStartRide() {
-    alert('Ride started! (Active navigation screen coming next)')
+    setCurrentView('riding')
+  }
+
+  function handleEndRide() {
+    setCurrentView('home')
+  }
+
+  // Show Active Navigation if riding
+  if (currentView === 'riding') {
+    return (
+      <ActiveNavigation
+        destination={searchText}
+        mode={selectedMode}
+        onEndRide={handleEndRide}
+      />
+    )
   }
 
   // Show Route Preview if user has searched
