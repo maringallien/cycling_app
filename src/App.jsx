@@ -2,6 +2,10 @@ import { useState } from 'react'
 import PhoneFrame from './components/PhoneFrame'
 import BottomNav from './components/BottomNav'
 import HomeScreen from './screens/HomeScreen'
+import ActivityScreen from './screens/ActivityScreen' 
+import ProfileScreen from './screens/ProfileScreen'
+import CommunityScreen from './screens/CommunityScreen'
+import TerritoryScreen from './screens/TerritoryScreen'
 
 function App() {
   const [currentTab, setCurrentTab] = useState('home')
@@ -11,13 +15,13 @@ function App() {
       case 'home':
         return <HomeScreen />
       case 'activity':
-        return <div className="flex items-center justify-center h-full text-gray-400">Activity (coming soon) </div>
+        return <ActivityScreen /> 
       case 'territory':
-        return <div className="flex items-center justify-center h-full text-gray-400">Territory (coming soon)</div>
+        return <TerritoryScreen />
       case 'community':
-        return <div className="flex items-center justify-center h-full text-gray-400">Community (coming soon)</div>
+        return <CommunityScreen />
       case 'profile':
-        return <div className="flex items-center justify-center h-full text-gray-400">Profile (coming soon)</div>
+        return <ProfileScreen />
       default:
         return <HomeScreen />
     }
@@ -27,11 +31,9 @@ function App() {
   return (
     <PhoneFrame>
       <div className="flex flex-col h-full">
-        {/* Screen content takes up all available space */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto h-full bg-gray-50">
           {renderScreen()}
         </div>
-        {/* Nav bar always at the bottom */}
         <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
       </div>
     </PhoneFrame>
