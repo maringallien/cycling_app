@@ -1,9 +1,8 @@
 const tabs = [
     {id: 'home', label: 'Map', icon: '🗺️' },
-    {id: 'activity', label: 'Activity', icon: '📊' },
+    {id: 'routes', label: 'Routes', icon: '📍' },
     {id: 'territory', label: 'Territory', icon: '🏰' },
     {id: 'community', label: 'Community', icon: '👥' },
-    {id: 'profile', label: 'Profile', icon: '👤' },
 ]
 
 function BottomNav({ currentTab, onTabChange }) {

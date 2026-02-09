@@ -6,8 +6,9 @@ function HomeScreen() {
   const [selectedMode, setSelectedMode] = useState('safe')
   const [searchText, setSearchText] = useState('')
   const [showHeatMap, setShowHeatMap] = useState(false)
+  const [showTheftMap, setShowTheftMap] = useState(false) // New State
   const [searchError, setSearchError] = useState('')
-  const [currentView, setCurrentView] = useState('home') // 'home', 'preview', or 'riding'
+  const [currentView, setCurrentView] = useState('home') 
 
   function handleSearch() {
     if (searchText.trim() === '') {
@@ -136,6 +137,7 @@ function HomeScreen() {
           <line x1="220" y1="0" x2="220" y2="500" stroke="#888" strokeWidth="2" />
         </svg>
 
+        {/* Normal Heat Map Layer (Red/Orange) */}
         {showHeatMap && (
           <svg className="absolute inset-0 w-full h-full pointer-events-none">
             <circle cx="100" cy="120" r="50" fill="rgba(239,68,68,0.3)" />
@@ -147,17 +149,42 @@ function HomeScreen() {
           </svg>
         )}
 
+        {/* Theft Heat Map Layer (Purple/Blue) */}
+        {showTheftMap && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+             {/* Hotspots of theft */}
+            <circle cx="80" cy="250" r="40" fill="rgba(147, 51, 234, 0.4)" />
+            <circle cx="80" cy="250" r="20" fill="rgba(147, 51, 234, 0.7)" />
+            
+            <circle cx="280" cy="100" r="45" fill="rgba(79, 70, 229, 0.4)" />
+            <circle cx="280" cy="100" r="25" fill="rgba(79, 70, 229, 0.7)" />
+
+            <text x="80" y="250" fontSize="10" fill="white" textAnchor="middle" dy="4">🚨</text>
+            <text x="280" y="100" fontSize="10" fill="white" textAnchor="middle" dy="4">🚨</text>
+          </svg>
+        )}
+
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
           <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse" />
         </div>
 
-        <button
-          onClick={() => setShowHeatMap(!showHeatMap)}
-          className={`absolute top-2 right-2 border-2 border-gray-800 rounded px-2 py-1 text-xs font-bold transition-all
-            ${showHeatMap ? 'bg-red-100 text-red-700' : 'bg-white text-gray-700'}`}
-        >
-          🔥 Heat Map {showHeatMap ? 'ON' : 'OFF'}
-        </button>
+        {/* Map Controls Container */}
+        <div className="absolute top-2 right-2 flex flex-col gap-2 items-end">
+            <button
+                onClick={() => setShowHeatMap(!showHeatMap)}
+                className={`border-2 border-gray-800 rounded px-2 py-1 text-xs font-bold transition-all shadow-sm
+                    ${showHeatMap ? 'bg-red-100 text-red-700' : 'bg-white text-gray-700'}`}
+                >
+                🔥 Activity {showHeatMap ? 'ON' : 'OFF'}
+            </button>
+            <button
+                onClick={() => setShowTheftMap(!showTheftMap)}
+                className={`border-2 border-gray-800 rounded px-2 py-1 text-xs font-bold transition-all shadow-sm
+                    ${showTheftMap ? 'bg-purple-100 text-purple-700' : 'bg-white text-gray-700'}`}
+                >
+                🚨 Theft {showTheftMap ? 'ON' : 'OFF'}
+            </button>
+        </div>
 
         <button
           onClick={() => alert('Centering on your location...')}
@@ -174,6 +201,15 @@ function HomeScreen() {
             <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500 opacity-60" /> High</div>
           </div>
         )}
+        
+        {/* Legend for Theft (Only shows if theft map is on) */}
+        {showTheftMap && !showHeatMap && (
+           <div className="absolute bottom-2 left-2 bg-white border border-gray-800 rounded px-2 py-1 text-xs">
+           <div className="font-bold mb-0.5 text-purple-800">Theft Danger Zones</div>
+           <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-purple-500 opacity-60" /> High Risk Area</div>
+         </div>
+        )}
+
       </div>
     </div>
   )
