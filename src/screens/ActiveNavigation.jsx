@@ -86,11 +86,7 @@ function ActiveNavigation({ destination, mode, onEndRide }) {
         <span className="text-xs font-bold">🚴 {modeStyle.text} Mode</span>
         <span className="text-xs font-bold">→ {destination || 'Destination'}</span>
         <button
-          onClick={() => {
-            if (window.confirm('End this ride?')) {
-              onEndRide()
-            }
-          }}
+          onClick={onEndRide}
           className="bg-red-500 text-white text-xs px-2 py-1 rounded font-bold"
         >
           ✕ End

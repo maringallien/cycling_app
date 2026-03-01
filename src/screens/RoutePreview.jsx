@@ -1,61 +1,115 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { MapContainer, TileLayer, Polyline, CircleMarker } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 
-function RoutePreview({ destination, mode, onStartRide, onBack }) {
-    const [showAllSteps, setShowAllSteps] = useState(false)
+function RoutePreview({ origin, destination, mode, onStartRide, onBack }) {
+  const [isStepsExpanded, setIsStepsExpanded] = useState(false)
+  
+  const [routeCoordinates, setRouteCoordinates] = useState([])
+  const [isLoadingRoute, setIsLoadingRoute] = useState(true)
+  
+  const [startPos, setStartPos] = useState([49.2827, -123.1207])
+  const [endPos, setEndPos] = useState([49.3000, -123.1450])
+  const [mapCenter, setMapCenter] = useState([49.291, -123.132])
 
-    // --- Mock Data ---
-  // In a real app, this data would come from a backend API (like Google Maps or Mapbox)
+  useEffect(() => {
+    let isMounted = true // Prevents state updates if user clicks 'back' before fetch finishes
+
+    async function fetchRouteData() {
+      setIsLoadingRoute(true)
+      
+      // Helper to fetch coordinates from OpenStreetMap API safely
+      const getCoordinates = async (query, defaultCoords) => {
+        if (!query || query.toLowerCase() === 'current location') return defaultCoords
+        try {
+          const searchQuery = encodeURIComponent(`${query}, Vancouver, BC`)
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchQuery}&limit=1`)
+          const data = await res.json()
+          
+          if (data && data.length > 0) {
+            return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+          }
+        } catch (error) {
+          console.error("Geocoding error:", error)
+        }
+        return defaultCoords
+      }
+
+      // Default safe coordinates
+      const defaultStart = { lat: 49.2827, lng: -123.1207 } 
+      const defaultEnd = { lat: 49.3000, lng: -123.1450 }   
+
+      const actualStart = await getCoordinates(origin, defaultStart)
+      const actualEnd = await getCoordinates(destination, defaultEnd)
+
+      if (!isMounted) return
+
+      setStartPos([actualStart.lat, actualStart.lng])
+      setEndPos([actualEnd.lat, actualEnd.lng])
+      
+      setMapCenter([
+        (actualStart.lat + actualEnd.lat) / 2, 
+        (actualStart.lng + actualEnd.lng) / 2
+      ])
+
+      try {
+        const osrmUrl = `https://router.project-osrm.org/route/v1/bicycle/${actualStart.lng},${actualStart.lat};${actualEnd.lng},${actualEnd.lat}?geometries=geojson`
+        const response = await fetch(osrmUrl)
+        const data = await response.json()
+        
+        if (isMounted && data.routes && data.routes.length > 0) {
+          const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]])
+          setRouteCoordinates(coords)
+        } else if (isMounted) {
+          setRouteCoordinates([]) 
+        }
+      } catch (error) {
+        console.error("Routing error:", error)
+        if (isMounted) setRouteCoordinates([]) 
+      } finally {
+        if (isMounted) setIsLoadingRoute(false)
+      }
+    }
+
+    fetchRouteData()
+
+    return () => { isMounted = false }
+  }, [origin, destination]) 
+
   const routeData = {
     direct: {
-      distance: '7.8 km',
-      time: '24 min',
-      elevation: '62 m',
-      difficulty: 'Moderate',
-      difficultyColor: 'bg-yellow-100',
-      safety: 3, // Used for star rating (3/5)
+      distance: '7.8 km', time: '24 min', elevation: '62 m', difficulty: 'Moderate',
+      difficultyColor: 'bg-yellow-100', safety: 3, routeColor: '#EF4444', 
       steps: [
-        { text: 'Head north on Main St (1.4 km)', color: 'bg-blue-500' },
-        { text: 'Turn right onto Highway Ave (2.1 km)', color: 'bg-red-500' }, // Red indicates danger
-        { text: 'Continue on Industrial Rd (1.8 km)', color: 'bg-orange-500' },
-        { text: 'Turn left onto Park Blvd (1.2 km)', color: 'bg-blue-500' },
-        { text: 'Arrive at destination (1.3 km)', color: 'bg-blue-500' },
+        { text: 'Head straight along main corridor', color: 'bg-blue-500' },
+        { text: 'Merge onto busy traffic lanes', color: 'bg-red-500' }, 
+        { text: 'Follow direct arterial road', color: 'bg-orange-500' },
+        { text: 'Arrive at destination', color: 'bg-blue-500' },
       ],
     },
     safe: {
-      distance: '9.2 km',
-      time: '32 min',
-      elevation: '45 m',
-      difficulty: 'Easy',
-      difficultyColor: 'bg-green-100',
-      safety: 5, // 5/5 Safety
+      distance: '9.2 km', time: '32 min', elevation: '45 m', difficulty: 'Easy',
+      difficultyColor: 'bg-green-100', safety: 5, routeColor: '#3B82F6', 
       steps: [
-        { text: 'Head north on Oak St bike lane (1.2 km)', color: 'bg-blue-500' },
-        { text: 'Turn right onto Riverside Path (3.4 km)', color: 'bg-blue-500' },
-        { text: 'Continue on Park Trail (2.8 km)', color: 'bg-blue-500' },
-        { text: 'Turn left onto School Lane (1.0 km)', color: 'bg-blue-500' },
-        { text: 'Arrive at destination (0.8 km)', color: 'bg-blue-500' },
+        { text: 'Head along protected bike lane', color: 'bg-blue-500' },
+        { text: 'Turn onto neighborhood greenway', color: 'bg-blue-500' },
+        { text: 'Follow separated path', color: 'bg-blue-500' },
+        { text: 'Arrive at destination', color: 'bg-blue-500' },
       ],
     },
     discovery: {
-      distance: '12.1 km',
-      time: '45 min',
-      elevation: '78 m',
-      difficulty: 'Moderate',
-      difficultyColor: 'bg-yellow-100',
-      safety: 4,
+      distance: '12.1 km', time: '45 min', elevation: '78 m', difficulty: 'Moderate',
+      difficultyColor: 'bg-yellow-100', safety: 4, routeColor: '#A855F7', 
       steps: [
-        { text: 'Head north on Oak St bike lane (1.2 km)', color: 'bg-blue-500' },
-        { text: 'Turn right onto Waterfront Scenic Path (3.8 km)', color: 'bg-blue-500' },
-        { text: 'Continue through Botanical Gardens (2.4 km)', color: 'bg-blue-500' },
-        { text: 'Turn onto Heritage District trail (2.2 km)', color: 'bg-blue-500' },
-        { text: 'Continue on Park Blvd (1.5 km)', color: 'bg-orange-500' },
-        { text: 'Arrive at destination (1.0 km)', color: 'bg-blue-500' },
+        { text: 'Take the scenic detour', color: 'bg-blue-500' },
+        { text: 'Ride along the waterfront', color: 'bg-blue-500' },
+        { text: 'Pass through local parks', color: 'bg-blue-500' },
+        { text: 'Arrive at destination', color: 'bg-blue-500' },
       ],
     },
   }
 
   const route = routeData[mode] || routeData.safe
-
   const modeLabels = {
     direct: { icon: '🛤️', label: 'DIRECT MODE', color: 'bg-blue-100' },
     safe: { icon: '🛡️', label: 'SAFE MODE', color: 'bg-green-100' },
@@ -63,143 +117,118 @@ function RoutePreview({ destination, mode, onStartRide, onBack }) {
   }
 
   const modeInfo = modeLabels[mode] || modeLabels.safe
-const stepsToShow = showAllSteps ? route.steps : route.steps.slice(0, 3)
+
   return (
     <div className="relative h-full flex flex-col bg-gray-100">
       
-      {/* --- Section 1: Header --- */}
-      <div className="flex items-center px-3 py-2 border-b-2 border-gray-800 bg-gray-200">
-        <button onClick={onBack} className="text-sm font-bold text-blue-600">
-          ← Back
-        </button>
+      {/* Header */}
+      <div className="flex items-center px-3 py-2 border-b-2 border-gray-800 bg-gray-200 z-10 shrink-0">
+        <button onClick={onBack} className="text-sm font-bold text-blue-600">← Back</button>
         <span className="flex-1 text-center font-bold text-sm">Route Preview</span>
-        <div className="w-12" /> {/* Empty spacer div to keep title centered perfectly */}
+        <div className="w-12" /> 
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto flex flex-col">
         
-        {/* --- Section 2: Mode Card --- */}
-        {/* Dynamically colors the box based on the mode (Green, Blue, or Yellow) */}
-        <div className="mx-3 mt-2 border-2 border-gray-800 rounded-lg px-3 py-2" style={{ backgroundColor: modeInfo.color === 'bg-green-100' ? '#dcfce7' : modeInfo.color === 'bg-blue-100' ? '#dbeafe' : '#fef9c3' }}>
+        <div className="mx-3 mt-2 shrink-0 border-2 border-gray-800 rounded-lg px-3 py-2 shadow-sm" style={{ backgroundColor: modeInfo.color === 'bg-green-100' ? '#dcfce7' : modeInfo.color === 'bg-blue-100' ? '#dbeafe' : '#fef9c3' }}>
           <div className="flex justify-between text-xs mb-1">
             <span className="font-bold">{modeInfo.icon} {modeInfo.label}</span>
-            <span className="bg-white px-2 rounded font-bold border border-gray-300">
-              {/* Star Generator: Repeat star char based on safety score */}
+            <span className="bg-white px-2 rounded font-bold border border-gray-300 shadow-sm">
               Safety: {'★'.repeat(route.safety)}{'☆'.repeat(5 - route.safety)}
             </span>
           </div>
-          <div className="text-xs text-gray-600">
-            Your Location → {destination || 'Unknown Destination'}
+          <div className="text-xs text-gray-600 font-medium mt-1.5 flex items-center gap-1.5">
+            <span className="truncate max-w-[120px] bg-white px-1.5 py-0.5 rounded border border-gray-200">
+                {origin || 'Current Location'}
+            </span>
+            <span>→</span>
+            <span className="truncate max-w-[120px] bg-white px-1.5 py-0.5 rounded border border-gray-200 font-bold text-gray-800">
+                {destination || 'Destination'}
+            </span>
           </div>
         </div>
 
-        {/* --- Section 3: Stats Grid --- */}
-        <div className="flex mx-3 mt-2 gap-1">
-          {/* Distance */}
-          <div className="flex-1 border-2 border-gray-800 rounded bg-white text-center py-1.5">
+        <div className="flex mx-3 mt-2 shrink-0 gap-1">
+          <div className="flex-1 border-2 border-gray-800 rounded-lg bg-white text-center py-1.5 shadow-sm">
             <div className="text-sm font-bold">{route.distance}</div>
-            <div className="text-xs text-gray-500">Distance</div>
+            <div className="text-[10px] uppercase font-bold text-gray-400">Distance</div>
           </div>
-          {/* Time */}
-          <div className="flex-1 border-2 border-gray-800 rounded bg-white text-center py-1.5">
+          <div className="flex-1 border-2 border-gray-800 rounded-lg bg-white text-center py-1.5 shadow-sm">
             <div className="text-sm font-bold">{route.time}</div>
-            <div className="text-xs text-gray-500">Est. Time</div>
+            <div className="text-[10px] uppercase font-bold text-gray-400">Est. Time</div>
           </div>
-          {/* Elevation */}
-          <div className="flex-1 border-2 border-gray-800 rounded bg-white text-center py-1.5">
+          <div className="flex-1 border-2 border-gray-800 rounded-lg bg-white text-center py-1.5 shadow-sm">
             <div className="text-sm font-bold">{route.elevation}</div>
-            <div className="text-xs text-gray-500">Elevation</div>
+            <div className="text-[10px] uppercase font-bold text-gray-400">Elevation</div>
           </div>
-          {/* Difficulty (Colored background changes based on route data) */}
-          <div className={`flex-1 border-2 border-gray-800 rounded text-center py-1.5 ${route.difficultyColor}`}>
+          <div className={`flex-1 border-2 border-gray-800 rounded-lg text-center py-1.5 shadow-sm ${route.difficultyColor}`}>
             <div className="text-sm font-bold">{route.difficulty}</div>
-            <div className="text-xs text-gray-500">Difficulty</div>
+            <div className="text-[10px] uppercase font-bold text-gray-600">Difficulty</div>
           </div>
         </div>
 
-        {/* --- Section 4: Map Visualizer --- */}
-        <div className="mx-3 mt-2 border-2 border-gray-800 rounded-lg bg-green-50 relative" style={{ height: '180px' }}>
-          <svg className="absolute inset-0 w-full h-full">
-            {/* User Start Point */}
-            <circle cx="40" cy="150" r="7" fill="#3B82F6" stroke="#1E40AF" strokeWidth="2" />
-            <text x="52" y="155" fontSize="9" fill="#333">📍 You</text>
+        {/* Map Visualizer
+          FIX: Removed flex-1 and assigned a fixed height so Leaflet never collapses to 0px.
+        */}
+        <div className="mx-3 mt-2 border-2 border-gray-800 rounded-lg relative overflow-hidden z-0 shadow-sm shrink-0" style={{ height: '240px' }}>
+          
+          {isLoadingRoute && (
+            <div className="absolute inset-0 z-50 bg-gray-100/80 backdrop-blur-sm flex items-center justify-center font-bold text-gray-800 text-sm">
+              Finding Route... 🚲
+            </div>
+          )}
 
-            {/* Dynamic Route Drawing: Renders different SVG paths based on mode */}
-            {mode === 'direct' ? (
-              // Direct Mode: Straighter lines, Red/Orange colors indicating busy roads
-              <>
-                <path d="M 40 150 Q 60 130 80 120" stroke="#3B82F6" strokeWidth="4" fill="none" />
-                <path d="M 80 120 Q 120 90 170 70" stroke="#EF4444" strokeWidth="4" fill="none" />
-                <path d="M 170 70 Q 210 55 250 45" stroke="#F97316" strokeWidth="4" fill="none" />
-                <path d="M 250 45 Q 270 40 290 35" stroke="#3B82F6" strokeWidth="4" fill="none" />
-              </>
-            ) : mode === 'discovery' ? (
-              // Discovery Mode: Very curvy path to simulate wandering/scenic route
-              <>
-                <path d="M 40 150 Q 30 100 60 80 Q 100 50 150 60 Q 200 70 230 50 Q 260 35 290 35" stroke="#3B82F6" strokeWidth="4" fill="none" />
-                {/* Extra labels specific to Discovery mode */}
-                <text x="80" y="45" fontSize="7" fill="#22C55E">🌳 scenic</text>
-                <text x="180" y="55" fontSize="7" fill="#22C55E">🌸 gardens</text>
-              </>
-            ) : (
-              // Default (Safe) Mode: Smooth curves, consistent blue/safe color
-              <>
-                <path d="M 40 150 Q 70 130 100 110 Q 150 80 200 60 Q 240 45 290 35" stroke="#3B82F6" strokeWidth="4" fill="none" />
-                <text x="80" y="95" fontSize="7" fill="#22C55E">🚲 bike path</text>
-                <text x="190" y="50" fontSize="7" fill="#22C55E">🚲 bike path</text>
-              </>
+          {/* FIX: Using key={mapCenter.join(',')} forces Leaflet to completely remount 
+            when the center point changes, guaranteeing it re-centers perfectly. 
+          */}
+          <MapContainer 
+            key={mapCenter.join(',')}
+            center={mapCenter} 
+            zoom={13} 
+            zoomControl={false}
+            style={{ height: '100%', width: '100%', zIndex: 0 }}
+          >
+            <TileLayer
+              attribution='&copy; OpenStreetMap'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+
+            {routeCoordinates.length > 0 && (
+              <Polyline positions={routeCoordinates} pathOptions={{ color: route.routeColor, weight: 5, opacity: 0.8 }} />
             )}
 
-            {/* Destination Point */}
-            <circle cx="290" cy="35" r="7" fill="#EF4444" stroke="#B91C1C" strokeWidth="2" />
-            <text x="245" y="25" fontSize="9" fill="#333">📍 {destination ? destination.slice(0, 10) : 'Dest.'}</text>
-          </svg>
-
-          {/* Map Legend overlay */}
-          <div className="absolute bottom-2 left-2 bg-white border border-gray-800 rounded px-2 py-1 text-xs">
-            <div className="flex items-center gap-1"><div className="w-4 h-1 bg-blue-500 rounded" /> Safe</div>
-            <div className="flex items-center gap-1"><div className="w-4 h-1 bg-orange-500 rounded" /> Caution</div>
-            <div className="flex items-center gap-1"><div className="w-4 h-1 bg-red-500 rounded" /> Danger</div>
-          </div>
+            <CircleMarker center={startPos} radius={6} pathOptions={{ color: 'white', fillColor: '#3B82F6', fillOpacity: 1, weight: 2 }} />
+            <CircleMarker center={endPos} radius={6} pathOptions={{ color: 'white', fillColor: '#EF4444', fillOpacity: 1, weight: 2 }} />
+          </MapContainer>
         </div>
 
-        {/* --- Section 5: Route Steps List --- */}
-        <div className="mx-3 mt-2 border-2 border-gray-800 rounded-lg bg-white px-3 py-2">
-          <div className="font-bold text-xs mb-1.5">Route Steps:</div>
-          {/* Map through the steps array (either full list or just top 3) */}
-          {stepsToShow.map((step, i) => (
-            <div key={i} className="flex items-center gap-2 mb-1">
-              <div className={`w-2 h-2 rounded-full ${step.color} shrink-0`} />
-              <span className="text-xs text-gray-600">{i + 1}. {step.text}</span>
-            </div>
-          ))}
+        {/* Collapsible Dropdown Route Steps */}
+        <div className="mx-3 mt-2 shrink-0 border-2 border-gray-800 rounded-lg bg-white px-3 py-2 shadow-sm transition-all">
+          <button 
+            onClick={() => setIsStepsExpanded(!isStepsExpanded)}
+            className="w-full flex justify-between items-center font-bold text-xs uppercase text-gray-800 outline-none"
+          >
+            <span>Route Steps ({route.steps.length})</span>
+            <span className="text-gray-500">{isStepsExpanded ? '▲' : '▼'}</span>
+          </button>
           
-          {/* Show "See all" button only if there are more than 3 steps */}
-          {route.steps.length > 3 && (
-            <button
-              onClick={() => setShowAllSteps(!showAllSteps)}
-              className="text-blue-500 text-xs mt-1"
-            >
-              {showAllSteps ? 'Show less ↑' : `See all ${route.steps.length} steps →`}
-            </button>
+          {isStepsExpanded && (
+            <div className="mt-3 pt-2 border-t border-gray-100">
+              {route.steps.map((step, i) => (
+                <div key={i} className="flex items-center gap-2 mb-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${step.color} shrink-0 shadow-sm`} />
+                  <span className="text-xs text-gray-700 font-medium">{i + 1}. {step.text}</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* --- Section 6: Conditional Warnings --- */}
-        {/* Only rendered if user selected the risky 'direct' mode */}
-        {mode === 'direct' && (
-          <div className="mx-3 mt-2 border-2 border-red-400 rounded-lg bg-red-50 px-3 py-2">
-            <div className="font-bold text-xs text-red-700">⚠️ Route Warnings:</div>
-            <div className="text-xs text-red-600 mt-1">• Highway Ave (km 1.4–3.5): High-speed traffic, no bike lane</div>
-            <div className="text-xs text-red-600">• Industrial Rd (km 3.5–5.3): Heavy truck traffic</div>
-          </div>
-        )}
-
-        {/* --- Section 7: Start Button --- */}
-        <div className="mx-3 mt-3 mb-3">
+        {/* Start Button */}
+        <div className="mx-3 mt-4 mb-6 shrink-0">
           <button
             onClick={onStartRide}
-            className="w-full border-2 border-gray-800 rounded-lg bg-green-500 text-white text-center py-3 font-bold text-lg active:bg-green-600"
+            className="w-full border-2 border-gray-800 rounded-xl bg-green-500 text-white text-center py-3.5 font-bold text-lg active:bg-green-600 shadow-[0_4px_0_rgb(31,41,55)] active:shadow-[0_0px_0_rgb(31,41,55)] active:translate-y-1 transition-all"
           >
             ▶ START RIDE
           </button>

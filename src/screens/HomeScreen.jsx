@@ -1,28 +1,51 @@
 import { useState } from 'react'
+import { MapContainer, TileLayer, CircleMarker, Circle } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css' 
 import RoutePreview from './RoutePreview'
 import ActiveNavigation from './ActiveNavigation'
 
 function HomeScreen() {
   const [selectedMode, setSelectedMode] = useState('safe')
-  const [searchText, setSearchText] = useState('')
+  const [startText, setStartText] = useState('Current Location')
+  const [searchText, setSearchText] = useState('') 
   const [showHeatMap, setShowHeatMap] = useState(false)
-  const [showTheftMap, setShowTheftMap] = useState(false) // New State
+  const [showTheftMap, setShowTheftMap] = useState(false) 
   const [searchError, setSearchError] = useState('')
   const [currentView, setCurrentView] = useState('home') 
+
+  const mapCenter = [49.2827, -123.1207]
+
+  const heatMapZones = [
+    { center: [49.295, -123.135], radius: 800, color: '#ef4444' }, 
+    { center: [49.273, -123.104], radius: 600, color: '#f97316' }, 
+    { center: [49.270, -123.155], radius: 700, color: '#eab308' }, 
+  ]
+
+  const theftMapZones = [
+    { center: [49.283, -123.100], radius: 500, color: '#9333ea' }, 
+    { center: [49.260, -123.113], radius: 450, color: '#4f46e5' }, 
+  ]
 
   function handleSearch() {
     if (searchText.trim() === '') {
       setSearchError('Please enter a destination')
       return
     }
+    if (startText.trim() === '') {
+      setStartText('Current Location')
+    }
     setSearchError('')
     setCurrentView('preview')
   }
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter') {
-      handleSearch()
-    }
+    if (e.key === 'Enter') handleSearch()
+  }
+
+  function handleSwapLocations() {
+    const temp = startText
+    setStartText(searchText)
+    setSearchText(temp)
   }
 
   function handleBack() {
@@ -37,10 +60,10 @@ function HomeScreen() {
     setCurrentView('home')
   }
 
-  // Show Active Navigation if riding
   if (currentView === 'riding') {
     return (
       <ActiveNavigation
+        origin={startText}
         destination={searchText}
         mode={selectedMode}
         onEndRide={handleEndRide}
@@ -48,10 +71,10 @@ function HomeScreen() {
     )
   }
 
-  // Show Route Preview if user has searched
   if (currentView === 'preview') {
     return (
       <RoutePreview
+        origin={startText}
         destination={searchText}
         mode={selectedMode}
         onStartRide={handleStartRide}
@@ -68,12 +91,28 @@ function HomeScreen() {
 
   return (
     <div className="relative h-full flex flex-col bg-gray-100">
-      {/* Search bar */}
+      
+      {/* Search & Routing UI */}
       <div className="px-3 pt-3">
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <div className="border-2 border-gray-800 rounded-lg bg-white px-3 py-2 flex items-center gap-2">
-              <span>🔍</span>
+        <div className="flex gap-2 items-stretch">
+          
+          <div className="flex-1 flex flex-col gap-2 relative border-2 border-gray-800 rounded-lg bg-white p-2 shadow-sm">
+            
+            <div className="absolute left-4 top-6 bottom-6 w-0.5 bg-gray-300 z-0"></div>
+
+            <div className="flex items-center gap-2 relative z-10 bg-white">
+              <span className="text-xs">📍</span>
+              <input
+                type="text"
+                placeholder="From..."
+                value={startText}
+                onChange={(e) => setStartText(e.target.value)}
+                className="flex-1 outline-none text-sm bg-gray-50 rounded px-2 py-1"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2 relative z-10 bg-white">
+              <span className="text-xs">🔍</span>
               <input
                 type="text"
                 placeholder="Where are you going?"
@@ -83,24 +122,32 @@ function HomeScreen() {
                   if (searchError) setSearchError('')
                 }}
                 onKeyDown={handleKeyDown}
-                className="flex-1 outline-none text-sm bg-transparent"
+                className="flex-1 outline-none text-sm bg-gray-50 rounded px-2 py-1"
               />
             </div>
-            {searchError && (
-              <p className="text-red-500 text-xs mt-1 ml-1">{searchError}</p>
-            )}
+
+            {/* Added z-20 and shadow-md so it overlaps the input backgrounds */}
+            <button 
+              onClick={handleSwapLocations}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-gray-100 hover:bg-gray-200 p-1.5 rounded-full border border-gray-300 transition-colors shadow-md text-sm font-bold"
+            >
+              ⇅
+            </button>
           </div>
+
           <button
             onClick={handleSearch}
-            className="border-2 border-gray-800 rounded-lg bg-blue-500 text-white px-3 py-2 text-sm font-bold"
+            className="border-2 border-gray-800 rounded-lg bg-blue-500 text-white px-4 py-2 text-sm font-bold shadow-sm active:bg-blue-600 transition-colors flex items-center"
           >
             Go
           </button>
         </div>
+        {searchError && (
+          <p className="text-red-500 text-xs mt-1 ml-1 font-bold">{searchError}</p>
+        )}
       </div>
 
-      {/* Mode selector */}
-      <div className="px-3 pt-2">
+      <div className="px-3 pt-3">
         <div className="flex gap-1">
           {modes.map((mode) => (
             <button
@@ -108,107 +155,52 @@ function HomeScreen() {
               onClick={() => setSelectedMode(mode.id)}
               className={`flex-1 border-2 rounded-lg text-center py-1.5 text-xs font-bold transition-all
                 ${selectedMode === mode.id
-                  ? `${mode.color} border-gray-800`
-                  : 'bg-white border-gray-300'}`}
+                  ? `${mode.color} border-gray-800 shadow-inner`
+                  : 'bg-white border-gray-300 shadow-sm'}`}
             >
               {mode.label}
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-500 mt-1 ml-1">
+        <p className="text-xs text-gray-500 mt-1.5 ml-1 font-medium">
           {modes.find((m) => m.id === selectedMode)?.desc}
         </p>
       </div>
 
-      {/* Map area */}
-      <div className="flex-1 mx-3 mt-2 mb-3 border-2 border-gray-800 rounded-lg bg-green-50 relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-gray-400">
-            <div className="text-4xl">🗺️</div>
-            <div className="text-xs mt-1">[ MAP AREA ]</div>
-            <div className="text-xs">Your location: Downtown</div>
-          </div>
-        </div>
+      <div className="flex-1 mx-3 mt-2 mb-3 border-2 border-gray-800 rounded-lg bg-gray-200 relative overflow-hidden z-0 shadow-sm">
+        
+        <MapContainer 
+          center={mapCenter} 
+          zoom={13} 
+          zoomControl={false} 
+          style={{ height: '100%', width: '100%', zIndex: 0 }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
 
-        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
-          <line x1="0" y1="150" x2="340" y2="150" stroke="#888" strokeWidth="2" />
-          <line x1="0" y1="250" x2="340" y2="250" stroke="#888" strokeWidth="2" />
-          <line x1="100" y1="0" x2="100" y2="500" stroke="#888" strokeWidth="2" />
-          <line x1="220" y1="0" x2="220" y2="500" stroke="#888" strokeWidth="2" />
-        </svg>
+          {showHeatMap && heatMapZones.map((zone, i) => (
+            <Circle key={`heat-${i}`} center={zone.center} radius={zone.radius} pathOptions={{ color: zone.color, fillColor: zone.color, fillOpacity: 0.4, stroke: false }} />
+          ))}
 
-        {/* Normal Heat Map Layer (Red/Orange) */}
-        {showHeatMap && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            <circle cx="100" cy="120" r="50" fill="rgba(239,68,68,0.3)" />
-            <circle cx="100" cy="120" r="30" fill="rgba(239,68,68,0.5)" />
-            <circle cx="220" cy="200" r="40" fill="rgba(249,115,22,0.3)" />
-            <circle cx="220" cy="200" r="20" fill="rgba(249,115,22,0.5)" />
-            <circle cx="160" cy="320" r="55" fill="rgba(234,179,8,0.2)" />
-            <circle cx="160" cy="320" r="35" fill="rgba(234,179,8,0.4)" />
-          </svg>
-        )}
+          {showTheftMap && theftMapZones.map((zone, i) => (
+            <Circle key={`theft-${i}`} center={zone.center} radius={zone.radius} pathOptions={{ color: zone.color, fillColor: zone.color, fillOpacity: 0.5, stroke: false }} />
+          ))}
 
-        {/* Theft Heat Map Layer (Purple/Blue) */}
-        {showTheftMap && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-             {/* Hotspots of theft */}
-            <circle cx="80" cy="250" r="40" fill="rgba(147, 51, 234, 0.4)" />
-            <circle cx="80" cy="250" r="20" fill="rgba(147, 51, 234, 0.7)" />
-            
-            <circle cx="280" cy="100" r="45" fill="rgba(79, 70, 229, 0.4)" />
-            <circle cx="280" cy="100" r="25" fill="rgba(79, 70, 229, 0.7)" />
+          <CircleMarker center={mapCenter} radius={7} pathOptions={{ color: 'white', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 }} />
+        </MapContainer>
 
-            <text x="80" y="250" fontSize="10" fill="white" textAnchor="middle" dy="4">🚨</text>
-            <text x="280" y="100" fontSize="10" fill="white" textAnchor="middle" dy="4">🚨</text>
-          </svg>
-        )}
-
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse" />
-        </div>
-
-        {/* Map Controls Container */}
-        <div className="absolute top-2 right-2 flex flex-col gap-2 items-end">
-            <button
-                onClick={() => setShowHeatMap(!showHeatMap)}
-                className={`border-2 border-gray-800 rounded px-2 py-1 text-xs font-bold transition-all shadow-sm
-                    ${showHeatMap ? 'bg-red-100 text-red-700' : 'bg-white text-gray-700'}`}
-                >
+        <div className="absolute top-2 right-2 flex flex-col gap-2 items-end z-[400]">
+            <button onClick={() => setShowHeatMap(!showHeatMap)} className={`border-2 border-gray-800 rounded px-2 py-1 text-xs font-bold transition-all shadow-md ${showHeatMap ? 'bg-red-100 text-red-700' : 'bg-white text-gray-700'}`}>
                 🔥 Activity {showHeatMap ? 'ON' : 'OFF'}
             </button>
-            <button
-                onClick={() => setShowTheftMap(!showTheftMap)}
-                className={`border-2 border-gray-800 rounded px-2 py-1 text-xs font-bold transition-all shadow-sm
-                    ${showTheftMap ? 'bg-purple-100 text-purple-700' : 'bg-white text-gray-700'}`}
-                >
+            <button onClick={() => setShowTheftMap(!showTheftMap)} className={`border-2 border-gray-800 rounded px-2 py-1 text-xs font-bold transition-all shadow-md ${showTheftMap ? 'bg-purple-100 text-purple-700' : 'bg-white text-gray-700'}`}>
                 🚨 Theft {showTheftMap ? 'ON' : 'OFF'}
             </button>
         </div>
 
-        <button
-          onClick={() => alert('Centering on your location...')}
-          className="absolute bottom-2 right-2 border-2 border-gray-800 rounded-full bg-white w-9 h-9 flex items-center justify-center text-lg shadow"
-        >
-          📍
-        </button>
-
-        {showHeatMap && (
-          <div className="absolute bottom-2 left-2 bg-white border border-gray-800 rounded px-2 py-1 text-xs">
-            <div className="font-bold mb-0.5">Cycling Activity</div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-yellow-400 opacity-60" /> Low</div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-400 opacity-60" /> Medium</div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500 opacity-60" /> High</div>
-          </div>
-        )}
-        
-        {/* Legend for Theft (Only shows if theft map is on) */}
-        {showTheftMap && !showHeatMap && (
-           <div className="absolute bottom-2 left-2 bg-white border border-gray-800 rounded px-2 py-1 text-xs">
-           <div className="font-bold mb-0.5 text-purple-800">Theft Danger Zones</div>
-           <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-purple-500 opacity-60" /> High Risk Area</div>
-         </div>
-        )}
+        <button onClick={() => alert('Centering on your location...')} className="absolute bottom-2 right-2 border-2 border-gray-800 rounded-full bg-white w-10 h-10 flex items-center justify-center text-lg shadow-md z-[400] active:bg-gray-100 transition-colors">📍</button>
 
       </div>
     </div>
