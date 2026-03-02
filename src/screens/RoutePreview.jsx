@@ -189,8 +189,8 @@ function RoutePreview({ origin, destination, mode, onStartRide, onBack }) {
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
             <TileLayer
-              attribution='&copy; OpenStreetMap'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             />
 
             {routeCoordinates.length > 0 && (

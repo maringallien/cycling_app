@@ -4,34 +4,61 @@ import BottomNav from './components/BottomNav'
 import HomeScreen from './screens/HomeScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import CommunityScreen from './screens/CommunityScreen'
-import TerritoryScreen from './screens/TerritoryScreen'
 import RoutesScreen from './screens/RoutesScreen'
+import ActiveNavigation from './screens/ActiveNavigation'
 
 function App() {
   const [currentTab, setCurrentTab] = useState('home')
+  const [navigatingRoute, setNavigatingRoute] = useState(null)
+  
+  // Global territory capture state
+  const [activeTerritorySession, setActiveTerritorySession] = useState(null)
 
   function renderScreen() {
     switch (currentTab) {
       case 'home':
-        return <HomeScreen />
+        return (
+          <HomeScreen 
+            activeTerritorySession={activeTerritorySession} 
+            setActiveTerritorySession={setActiveTerritorySession} 
+          />
+        )
       case 'routes':
-        return <RoutesScreen />
-      case 'territory':
-        return <TerritoryScreen />
+        return (
+          <RoutesScreen 
+            onStartRoute={(route) => setNavigatingRoute(route)} 
+            activeTerritorySession={activeTerritorySession}
+          />
+        )
       case 'community':
         return <CommunityScreen />
       case 'profile':
         return <ProfileScreen />
       default:
-        return <HomeScreen />
+        return (
+          <HomeScreen 
+            activeTerritorySession={activeTerritorySession} 
+            setActiveTerritorySession={setActiveTerritorySession} 
+          />
+        )
     }
+  }
+
+  if (navigatingRoute) {
+    return (
+      <PhoneFrame>
+        <ActiveNavigation 
+          destination={navigatingRoute.name} 
+          mode="safe" 
+          onEndRide={() => setNavigatingRoute(null)} 
+        />
+      </PhoneFrame>
+    )
   }
 
   return (
     <PhoneFrame>
       <div className="flex flex-col h-full bg-gray-50">
-        
-        {/* Top Header with Profile Icon */}
         <div className="flex justify-between items-center px-4 py-3 bg-white border-b border-gray-200 shadow-sm z-10 shrink-0">
           <span className="font-bold text-xl tracking-tight text-blue-600 italic">CycleApp</span>
           <button 
@@ -47,6 +74,7 @@ function App() {
           {renderScreen()}
         </div>
 
+        {/* Note: If you want, you can now remove the "Territory" button from your BottomNav.jsx component! */}
         <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
       </div>
     </PhoneFrame>

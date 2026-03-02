@@ -6,7 +6,11 @@ function CommunityScreen() {
   const [activeTab, setActiveTab] = useState('my-groups') // 'my-groups', 'find-groups', 'stolen-bikes'
   const [selectedGroup, setSelectedGroup] = useState(null)
   const [selectedBattle, setSelectedBattle] = useState(null)
-  const [selectedBike, setSelectedBike] = useState(null) // New State for theft feature
+  const [selectedBike, setSelectedBike] = useState(null)
+  
+  // Search States
+  const [bikeSearchTerm, setBikeSearchTerm] = useState('') 
+  const [groupSearchTerm, setGroupSearchTerm] = useState('') // New search state for groups
 
   // --- Dummy Data ---
   const myGroups = [
@@ -18,10 +22,10 @@ function CommunityScreen() {
     { id: 3, name: 'Morning Coffee Crew', members: 45, type: 'Social', nextRide: 'Tomorrow, 6:30 AM' },
     { id: 4, name: 'Velo Racers', members: 312, type: 'Competitive', nextRide: 'Wed, 5:00 PM' },
     { id: 5, name: 'Sunday Spinners', members: 89, type: 'Casual', nextRide: 'Sun, 9:00 AM' },
-    { id: 6, name: 'Mountain Goats', members: 15, type: 'Off-road', nextRide: 'Sat, 7:00 AM' }
+    { id: 6, name: 'Mountain Goats', members: 15, type: 'Off-road', nextRide: 'Sat, 7:00 AM' },
+    { id: 7, name: 'Downtown Commuters', members: 120, type: 'Commute', nextRide: 'Mon, 7:30 AM' }
   ]
   
-  // New Dummy Data for Theft Feature
   const stolenBikes = [
     { 
         id: 1, 
@@ -57,9 +61,22 @@ function CommunityScreen() {
         image: '🚲', 
         serial: 'SPZ-555-001',
         desc: 'Mint condition, brand new grips.',
-        status: 'Recovered' // Example of a recovered bike
+        status: 'Recovered' 
     }
   ]
+
+  // Filter stolen bikes
+  const filteredStolenBikes = stolenBikes.filter(bike => 
+    bike.name.toLowerCase().includes(bikeSearchTerm.toLowerCase()) ||
+    bike.color.toLowerCase().includes(bikeSearchTerm.toLowerCase()) ||
+    bike.location.toLowerCase().includes(bikeSearchTerm.toLowerCase())
+  )
+
+  // Filter groups based on search term
+  const filteredGroups = allGroups.filter(group => 
+    group.name.toLowerCase().includes(groupSearchTerm.toLowerCase()) ||
+    group.type.toLowerCase().includes(groupSearchTerm.toLowerCase())
+  )
 
   const groupDetails = {
     id: 1,
@@ -100,12 +117,12 @@ function CommunityScreen() {
 
   // --- Actions ---
   const handleViewGroup = (group) => {
-    setSelectedGroup(groupDetails) // In real app, fetch by ID
+    setSelectedGroup(groupDetails) 
     setView('group-home')
   }
 
   const handleViewBattle = (battle) => {
-    setSelectedBattle(battleDetails) // In real app, fetch by ID
+    setSelectedBattle(battleDetails) 
     setView('battle-detail')
   }
 
@@ -137,7 +154,6 @@ function CommunityScreen() {
             </div>
 
             <div className="flex-1 overflow-y-auto pb-4">
-                {/* Image Placeholder */}
                 <div className="bg-gray-200 h-56 flex items-center justify-center relative">
                     <span className="text-6xl" role="img" aria-label="bike">🚲</span>
                     <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
@@ -146,13 +162,11 @@ function CommunityScreen() {
                 </div>
 
                 <div className="p-4 space-y-4">
-                    {/* Header Info */}
                     <div>
                         <h2 className="text-2xl font-bold text-gray-800">{selectedBike.name}</h2>
                         <p className="text-gray-500 text-sm">Serial: <span className="font-mono bg-gray-100 px-1 rounded">{selectedBike.serial}</span></p>
                     </div>
 
-                    {/* Theft Details Card */}
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-3">
                         <div className="flex items-start gap-3">
                             <div className="bg-red-50 p-2 rounded-full">📍</div>
@@ -171,7 +185,6 @@ function CommunityScreen() {
                         </div>
                     </div>
 
-                    {/* Description */}
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                          <h3 className="font-bold text-gray-800 mb-2">Description</h3>
                          <p className="text-gray-600 text-sm leading-relaxed">
@@ -179,13 +192,12 @@ function CommunityScreen() {
                          </p>
                     </div>
 
-                    {/* Map Placeholder */}
                     <div className="bg-gray-200 h-40 rounded-xl relative overflow-hidden border border-gray-300 flex items-center justify-center">
                         <span className="text-gray-500 font-bold">🗺️ Map Location Visual</span>
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl">📍</div>
                     </div>
 
-                    <button className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-[0.98]">
+                    <button className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-[0.98] transition-transform">
                         Contact Owner / Report Sighting
                     </button>
                 </div>
@@ -204,16 +216,13 @@ function CommunityScreen() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          {/* Territory Map Visual */}
           <div className="bg-gray-200 h-56 rounded-xl relative overflow-hidden shadow-inner border border-gray-300 flex items-center justify-center">
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle,_var(--tw-gradient-stops))] from-gray-400 to-transparent"></div>
-            {/* Simulated Zone Shape */}
             <div className="w-32 h-32 bg-red-500/80 rounded-full blur-xl absolute top-10 left-10 animate-pulse"></div>
             <div className="w-24 h-24 bg-green-500/80 rounded-full blur-xl absolute bottom-10 right-10 animate-pulse"></div>
             <span className="relative z-10 font-bold text-gray-500">🗺️ Map of {selectedBattle.zone}</span>
           </div>
 
-          {/* Conflict Scale */}
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 className="text-center font-bold text-gray-700 mb-2">Control Status</h3>
             <div className="flex justify-between text-xs font-bold mb-1">
@@ -227,9 +236,7 @@ function CommunityScreen() {
             <div className="text-center text-xs text-gray-400 mt-2">Target: 100% to Capture</div>
           </div>
 
-          {/* Top Players Lists */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Allies */}
             <div className="bg-green-50 p-3 rounded-xl border border-green-100">
               <h4 className="text-green-800 font-bold text-sm mb-3 border-b border-green-200 pb-1">Our Top Riders</h4>
               <div className="space-y-2">
@@ -242,7 +249,6 @@ function CommunityScreen() {
               </div>
             </div>
 
-            {/* Enemies */}
             <div className="bg-red-50 p-3 rounded-xl border border-red-100">
               <h4 className="text-red-800 font-bold text-sm mb-3 border-b border-red-200 pb-1">Top Contenders</h4>
               <div className="space-y-2">
@@ -268,7 +274,6 @@ function CommunityScreen() {
   if (view === 'group-home' && selectedGroup) {
     return (
       <div className="flex flex-col h-full bg-gray-50">
-        {/* Header */}
         <div className="bg-white p-4 border-b border-gray-200 sticky top-0 flex items-center gap-3 z-10">
           <button onClick={handleBack} className="text-gray-500 font-bold">← Back</button>
           <h1 className="text-lg font-bold flex-1">{selectedGroup.name}</h1>
@@ -276,13 +281,11 @@ function CommunityScreen() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-5">
-          {/* Announcement Board */}
           <section className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-sm text-yellow-800 flex gap-2">
             <span>📌</span>
             <span className="font-medium">{selectedGroup.announcement}</span>
           </section>
 
-          {/* Ongoing Battles */}
           <section>
             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">⚔️ Active Battles</h2>
             <div className="space-y-3">
@@ -306,7 +309,6 @@ function CommunityScreen() {
             </div>
           </section>
 
-          {/* Upcoming Rides */}
           <section>
             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">📅 Upcoming Rides</h2>
             <div className="space-y-3">
@@ -322,7 +324,6 @@ function CommunityScreen() {
             </div>
           </section>
 
-          {/* Members Preview */}
           <section>
             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">👥 Members ({selectedGroup.members.length})</h2>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 flex flex-wrap gap-2">
@@ -402,17 +403,31 @@ function CommunityScreen() {
           </div>
         )}
         
+        {/* Find Groups Tab View */}
         {activeTab === 'find-groups' && (
           <div className="space-y-4">
-             <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-center">
-               <span className="text-2xl">🔍</span>
-               <div className="flex-1">
-                 <h3 className="text-sm font-bold text-blue-900">Find your tribe</h3>
-                 <p className="text-xs text-blue-700">Search for groups by name or location</p>
-               </div>
+             
+             {/* Search Input for Find Groups */}
+             <div className="bg-white rounded-xl px-4 py-3 flex items-center gap-3 focus-within:ring-2 focus-within:ring-blue-500 transition-all border border-gray-200 shadow-sm">
+                 <span className="text-gray-400 text-lg">🔍</span>
+                 <input 
+                     type="text" 
+                     placeholder="Search groups by name or type..." 
+                     value={groupSearchTerm}
+                     onChange={(e) => setGroupSearchTerm(e.target.value)}
+                     className="bg-transparent border-none outline-none text-sm font-medium flex-1 text-gray-800 placeholder-gray-500 h-full"
+                 />
              </div>
 
-             {allGroups.map(group => (
+             {/* Empty Search Results State */}
+             {filteredGroups.length === 0 && (
+                 <div className="text-center py-10">
+                     <span className="text-4xl block mb-2">🕵️</span>
+                     <p className="text-sm font-bold text-gray-500">No groups found matching your search.</p>
+                 </div>
+             )}
+
+             {filteredGroups.map(group => (
                <div key={group.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
                  <div>
                    <h3 className="font-bold text-gray-800">{group.name}</h3>
@@ -435,6 +450,18 @@ function CommunityScreen() {
         {/* Stolen Bikes Tab View */}
         {activeTab === 'stolen-bikes' && (
             <div className="space-y-4">
+                {/* Search Input for Theft Feature */}
+                <div className="bg-white rounded-xl px-4 py-3 flex items-center gap-3 focus-within:ring-2 focus-within:ring-red-500 transition-all border border-gray-200 shadow-sm">
+                    <span className="text-gray-400 text-lg">🔍</span>
+                    <input 
+                        type="text" 
+                        placeholder="Search by model, color, or location..." 
+                        value={bikeSearchTerm}
+                        onChange={(e) => setBikeSearchTerm(e.target.value)}
+                        className="bg-transparent border-none outline-none text-sm font-medium flex-1 text-gray-800 placeholder-gray-500 h-full"
+                    />
+                </div>
+
                 {/* Report Button CTA */}
                 <button 
                     onClick={handleReportStolen}
@@ -443,12 +470,20 @@ function CommunityScreen() {
                     <span>📣</span> Report a Stolen Bike
                 </button>
 
-                <div className="flex items-center gap-2 mt-2 mb-2">
+                <div className="flex items-center gap-2 mt-4 mb-2">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Recent Alerts</span>
                     <div className="h-px bg-gray-200 flex-1"></div>
                 </div>
 
-                {stolenBikes.map(bike => (
+                {/* Empty Search Results State */}
+                {filteredStolenBikes.length === 0 && (
+                    <div className="text-center py-10">
+                        <span className="text-4xl block mb-2">🚲</span>
+                        <p className="text-sm font-bold text-gray-500">No bikes found matching your search.</p>
+                    </div>
+                )}
+
+                {filteredStolenBikes.map(bike => (
                     <button 
                         key={bike.id} 
                         onClick={() => handleViewBike(bike)}

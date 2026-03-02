@@ -36,11 +36,22 @@ function ProfileScreen() {
     { day: 'S', km: 30, height: '75%' },
   ]
 
+  // Added a couple more dummy rides to make the scrolling obvious
   const rideHistory = [
     { id: 1, date: 'Today, 8:30 AM', route: 'Morning Commute', distance: '8.4 km', time: '28 min', avgSpeed: '18.2 km/h', mode: 'Direct', elevation: '45m' },
     { id: 2, date: 'Yesterday, 5:15 PM', route: 'Ride Home', distance: '8.5 km', time: '32 min', avgSpeed: '16.5 km/h', mode: 'Safe', elevation: '42m' },
     { id: 3, date: 'Sat, Oct 24', route: 'Weekend Loop', distance: '42.0 km', time: '2h 15m', avgSpeed: '19.8 km/h', mode: 'Discovery', elevation: '320m' },
     { id: 4, date: 'Fri, Oct 23', route: 'Downtown Dash', distance: '12.2 km', time: '45 min', avgSpeed: '17.1 km/h', mode: 'Direct', elevation: '80m' },
+    { id: 5, date: 'Wed, Oct 21', route: 'Coffee Run', distance: '3.1 km', time: '12 min', avgSpeed: '15.5 km/h', mode: 'Safe', elevation: '15m' },
+    { id: 6, date: 'Mon, Oct 19', route: 'Morning Commute', distance: '8.4 km', time: '29 min', avgSpeed: '17.9 km/h', mode: 'Direct', elevation: '45m' },
+  ]
+
+  // Added one more dummy territory to show off the scrolling
+  const personalTerritories = [
+    { id: 1, name: 'Downtown Core', status: 'Claimed', detail: 'Claimed Oct 12, 2023', color: '#ef4444' },
+    { id: 2, name: 'Kitsilano Area', status: 'Claimed', detail: 'Claimed Nov 05, 2023', color: '#10b981' },
+    { id: 3, name: 'False Creek', status: 'Capturing', detail: '1.2 / 2.0 km', color: '#f59e0b' },
+    { id: 4, name: 'Commercial Drive', status: 'Lost', detail: 'Overtaken 2 days ago', color: '#6b7280' }
   ]
 
   // --- Actions ---
@@ -107,8 +118,6 @@ function ProfileScreen() {
 
   // --- Render: Main Profile View ---
   return (
-    // UPDATED: Changed from "flex flex-col h-full" to "min-h-full"
-    // This removes the internal scroll area and lets the global page scroll handle everything.
     <div className="bg-gray-50 min-h-full pb-8">
       
       {/* Header Profile Card */}
@@ -138,10 +147,9 @@ function ProfileScreen() {
         </div>
       </div>
 
-      {/* UPDATED: Removed "flex-1 overflow-y-auto" so content flows naturally */}
       <div className="p-4 space-y-4">
         
-        {/* Weekly Activity Chart (Merged from Activity) */}
+        {/* Weekly Activity Chart */}
         <section>
           <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Weekly Activity</h2>
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
@@ -158,6 +166,37 @@ function ProfileScreen() {
                 </div>
                 ))}
             </div>
+          </div>
+        </section>
+
+        {/* My Territories Section - SCROLLBOX APPLIED HERE */}
+        <section>
+          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">My Territories</h2>
+          <div className="max-h-60 overflow-y-auto pr-1 space-y-3 pb-1">
+              {personalTerritories.map((territory) => (
+              <div 
+                  key={territory.id}
+                  className="w-full bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex items-center gap-3 text-left"
+              >
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-base shrink-0 shadow-inner text-white"
+                    style={{ backgroundColor: territory.color }}
+                  >
+                    🚩
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="font-bold text-gray-800 text-sm">{territory.name}</div>
+                    <div className="text-[10px] text-gray-500">{territory.detail}</div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${territory.status === 'Claimed' ? 'bg-green-100 text-green-700' : territory.status === 'Lost' ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700'}`}>
+                        {territory.status}
+                    </span>
+                  </div>
+              </div>
+              ))}
           </div>
         </section>
 
@@ -179,16 +218,16 @@ function ProfileScreen() {
                 )}
               </div>
             ))}
-            <button className="w-full py-3 text-center text-blue-600 text-sm font-bold bg-gray-50 hover:bg-gray-100 border-t border-gray-100">
+            <button className="w-full py-3 text-center text-blue-600 text-sm font-bold bg-gray-50 hover:bg-gray-100 border-t border-gray-100 transition-colors">
               + Add New Bike
             </button>
           </div>
         </section>
 
-        {/* Recent Rides (Merged from Activity) */}
+        {/* Recent Rides - SCROLLBOX APPLIED HERE */}
         <section>
           <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Recent Rides</h2>
-          <div className="space-y-3">
+          <div className="max-h-64 overflow-y-auto pr-1 space-y-3 pb-1">
               {rideHistory.map((ride) => (
               <button 
                   key={ride.id}
@@ -263,10 +302,10 @@ function ProfileScreen() {
         {/* Account Actions */}
         <section className="pb-4">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden divide-y divide-gray-100">
-            <button className="w-full p-4 text-left font-medium text-gray-800 flex justify-between hover:bg-gray-50">
+            <button className="w-full p-4 text-left font-medium text-gray-800 flex justify-between hover:bg-gray-50 transition-colors">
               Privacy Settings <span className="text-gray-400">›</span>
             </button>
-            <button className="w-full p-4 text-left font-medium text-red-600 flex justify-between hover:bg-red-50">
+            <button className="w-full p-4 text-left font-medium text-red-600 flex justify-between hover:bg-red-50 transition-colors">
               Log Out
             </button>
           </div>

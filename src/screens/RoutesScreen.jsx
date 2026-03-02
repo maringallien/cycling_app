@@ -44,7 +44,8 @@ function MapPreview({ coordinates }) {
     return <div ref={mapRef} className="w-full h-full z-0" />
 }
 
-function RoutesScreen() {
+// Added the onStartRoute prop here
+function RoutesScreen({ onStartRoute }) {
     const [view, setView] = useState('list') // 'list' or 'detail'
     const [selectedRoute, setSelectedRoute] = useState(null)
     const [searchTerm, setSearchTerm] = useState('')
@@ -243,7 +244,11 @@ function RoutesScreen() {
                         </div>
 
                         <div className="pt-4 pb-4">
-                            <button className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+                            {/* Updated onClick handler here to trigger the callback */}
+                            <button 
+                                onClick={() => onStartRoute(selectedRoute)}
+                                className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                            >
                                 <span>🚲</span> Start This Route
                             </button>
                         </div>
