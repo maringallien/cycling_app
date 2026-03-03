@@ -11,8 +11,10 @@ function App() {
   const [currentTab, setCurrentTab] = useState('home')
   const [navigatingRoute, setNavigatingRoute] = useState(null)
   
-  // Global territory capture state
+  // Global states
   const [activeTerritorySession, setActiveTerritorySession] = useState(null)
+  const [isTracingRoute, setIsTracingRoute] = useState(false)
+  const [isDefending, setIsDefending] = useState(false) // NEW STATE
 
   function renderScreen() {
     switch (currentTab) {
@@ -21,6 +23,10 @@ function App() {
           <HomeScreen 
             activeTerritorySession={activeTerritorySession} 
             setActiveTerritorySession={setActiveTerritorySession} 
+            isTracingRoute={isTracingRoute}
+            onStopTracing={() => setIsTracingRoute(false)}
+            isDefending={isDefending} // Pass to Home
+            onStopDefending={() => setIsDefending(false)} // Pass to Home
           />
         )
       case 'routes':
@@ -28,17 +34,32 @@ function App() {
           <RoutesScreen 
             onStartRoute={(route) => setNavigatingRoute(route)} 
             activeTerritorySession={activeTerritorySession}
+            onCreateNewRoute={() => {
+              setIsTracingRoute(true)
+              setCurrentTab('home') 
+            }}
           />
         )
       case 'community':
-        return <CommunityScreen />
+        return (
+          <CommunityScreen 
+            onStartDefending={() => { // NEW PROP
+              setIsDefending(true)
+              setCurrentTab('home')
+            }}
+          />
+        )
       case 'profile':
         return <ProfileScreen />
       default:
         return (
           <HomeScreen 
             activeTerritorySession={activeTerritorySession} 
-            setActiveTerritorySession={setActiveTerritorySession} 
+            setActiveTerritorySession={setActiveTerritorySession}
+            isTracingRoute={isTracingRoute} 
+            onStopTracing={() => setIsTracingRoute(false)}
+            isDefending={isDefending} 
+            onStopDefending={() => setIsDefending(false)}
           />
         )
     }
@@ -74,7 +95,6 @@ function App() {
           {renderScreen()}
         </div>
 
-        {/* Note: If you want, you can now remove the "Territory" button from your BottomNav.jsx component! */}
         <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
       </div>
     </PhoneFrame>

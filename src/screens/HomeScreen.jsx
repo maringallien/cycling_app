@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import RoutePreview from './RoutePreview'
 import ActiveNavigation from './ActiveNavigation'
 import OnboardingOverlay from './OnboardingOverlay'
-import { homeTourPart1, homeTourPart2 } from '../config/tours' // Importing the tours!
+import { homeTourPart1, homeTourPart2 } from '../config/tours'
 
 // Helper component to handle map clicks intelligently
 function MapClickHandler({ onClick }) {
@@ -20,7 +20,7 @@ function MapClickHandler({ onClick }) {
   return null
 }
 
-function HomeScreen({ activeTerritorySession, setActiveTerritorySession }) {
+function HomeScreen({ activeTerritorySession, setActiveTerritorySession, isTracingRoute, onStopTracing, isDefending, onStopDefending }) { // Accept new props
   const [selectedMode, setSelectedMode] = useState('safe')
   const [startText, setStartText] = useState('Current Location')
   const [searchText, setSearchText] = useState('') 
@@ -142,15 +142,13 @@ function HomeScreen({ activeTerritorySession, setActiveTerritorySession }) {
   const isCurrentSessionActive = activeTerritorySession && displayTerritory?.id === activeTerritorySession.id;
 
   return (
-    // 'home-screen-container' ID for measuring bounding boxes in the OnboardingOverlay
     <div id="home-screen-container" className="relative h-full flex flex-col bg-gray-100">
       
-      {/* --- RENDER ONBOARDING TOURS --- */}
       {tour1Ready && (
         <OnboardingOverlay 
           screenKey="home_tour_part1" 
           steps={homeTourPart1} 
-          onComplete={() => setIsLayersMenuOpen(true)} // Auto-open menu when done!
+          onComplete={() => setIsLayersMenuOpen(true)}
         />
       )}
       
@@ -158,11 +156,10 @@ function HomeScreen({ activeTerritorySession, setActiveTerritorySession }) {
         <OnboardingOverlay 
           screenKey="home_tour_part2" 
           steps={homeTourPart2} 
-          onComplete={() => setIsLayersMenuOpen(false)} // Auto-close menu when done!
+          onComplete={() => setIsLayersMenuOpen(false)}
         />
       )}
 
-      {/* Search & Routing UI */}
       <div className="px-3 pt-3">
         <div className="flex gap-2 items-stretch">
           <div className="flex-1 flex flex-col gap-2 relative border-2 border-gray-800 rounded-lg bg-white p-2 shadow-sm">
@@ -215,7 +212,6 @@ function HomeScreen({ activeTerritorySession, setActiveTerritorySession }) {
       </div>
 
       <div className="px-3 pt-3">
-        {/* Added 'tour-modes' ID here for onboarding targeting */}
         <div id="tour-modes" className="flex gap-1">
           {modes.map((mode) => (
             <button
@@ -283,8 +279,38 @@ function HomeScreen({ activeTerritorySession, setActiveTerritorySession }) {
           <CircleMarker center={mapCenter} radius={7} pathOptions={{ color: 'white', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 }} />
         </MapContainer>
 
+        {/* --- DISCRETE STATUS INDICATORS --- */}
+        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 z-[400] pointer-events-none">
+          {isCreatingTerritory && (
+            <div className="bg-white/90 backdrop-blur-sm border border-blue-200 px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5 pointer-events-auto">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Drawing</span>
+            </div>
+          )}
+
+          {isTracingRoute && (
+            <button 
+              onClick={onStopTracing}
+              className="bg-white/90 backdrop-blur-sm border border-green-200 px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5 pointer-events-auto hover:bg-green-50 active:scale-95 transition-all cursor-pointer group"
+            >
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse group-hover:bg-red-500 transition-colors"></div>
+              <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider group-hover:text-red-600 transition-colors">Tracing <span className="text-gray-400 group-hover:text-red-500">✕</span></span>
+            </button>
+          )}
+
+          {/* NEW DEFENDING INDICATOR */}
+          {isDefending && (
+            <button 
+              onClick={onStopDefending}
+              className="bg-white/90 backdrop-blur-sm border border-purple-200 px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5 pointer-events-auto hover:bg-purple-50 active:scale-95 transition-all cursor-pointer group"
+            >
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse group-hover:bg-red-500 transition-colors"></div>
+              <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider group-hover:text-red-600 transition-colors">Defending <span className="text-gray-400 group-hover:text-red-500">✕</span></span>
+            </button>
+          )}
+        </div>
+
         <div className="absolute top-2 right-2 flex flex-col items-end z-[400]">
-            {/* Added 'tour-layers-btn' ID here for onboarding targeting */}
             <button 
                 id="tour-layers-btn"
                 onClick={() => setIsLayersMenuOpen(!isLayersMenuOpen)} 
@@ -298,7 +324,6 @@ function HomeScreen({ activeTerritorySession, setActiveTerritorySession }) {
                     <div className="px-3 py-2 bg-gray-100 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Map Layers
                     </div>
-                    {/* Added 'tour-menu-filters' ID here to wrap Activity/Theft */}
                     <div id="tour-menu-filters" className="flex flex-col">
                         <button 
                             onClick={() => setShowHeatMap(!showHeatMap)} 
@@ -319,7 +344,6 @@ function HomeScreen({ activeTerritorySession, setActiveTerritorySession }) {
                             </div>
                         </button>
                     </div>
-                    {/* Added 'tour-menu-territory' ID here */}
                     <button 
                         id="tour-menu-territory"
                         onClick={() => setShowTerritories(!showTerritories)} 
@@ -334,7 +358,6 @@ function HomeScreen({ activeTerritorySession, setActiveTerritorySession }) {
                     <div className="px-3 py-2 bg-gray-100 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider mt-1">
                         Actions
                     </div>
-                    {/* Added 'tour-menu-create' ID here */}
                     <button 
                         id="tour-menu-create"
                         onClick={() => setIsCreatingTerritory(!isCreatingTerritory)} 

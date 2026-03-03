@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import OnboardingOverlay from './OnboardingOverlay'
 import { communityTour } from '../config/tours'
 
-function CommunityScreen() {
+function CommunityScreen({ onStartDefending }) { 
   // Navigation State
-  const [view, setView] = useState('list') // 'list', 'group-home', 'battle-detail', 'bike-detail'
+  const [view, setView] = useState('list') // 'list', 'group-home', 'battle-detail', 'bike-detail', 'report-form'
   const [activeTab, setActiveTab] = useState('my-groups') // 'my-groups', 'find-groups', 'stolen-bikes'
   const [selectedGroup, setSelectedGroup] = useState(null)
   const [selectedBattle, setSelectedBattle] = useState(null)
@@ -13,6 +13,10 @@ function CommunityScreen() {
   // Search States
   const [bikeSearchTerm, setBikeSearchTerm] = useState('') 
   const [groupSearchTerm, setGroupSearchTerm] = useState('') 
+
+  // --- UI Notification & Modal States ---
+  const [toastMessage, setToastMessage] = useState(null)
+  const [groupToLeave, setGroupToLeave] = useState(null) // Tracks which group ID the user is trying to leave
 
   // --- ONBOARDING TOUR STATE ---
   const [tourReady, setTourReady] = useState(false)
@@ -23,21 +27,13 @@ function CommunityScreen() {
     return () => clearTimeout(timer)
   }, [])
 
-  // --- Dummy Data ---
-  const myGroups = [
+  // --- Data States ---
+  const [myGroups, setMyGroups] = useState([
     { id: 1, name: 'Urban Explorers', role: 'Member', nextRide: 'Sat 10:00 AM', battles: 2 },
     { id: 2, name: 'Night Riders', role: 'Admin', nextRide: 'Tue 8:00 PM', battles: 0 }
-  ]
+  ])
 
-  const allGroups = [
-    { id: 3, name: 'Morning Coffee Crew', members: 45, type: 'Social', nextRide: 'Tomorrow, 6:30 AM' },
-    { id: 4, name: 'Velo Racers', members: 312, type: 'Competitive', nextRide: 'Wed, 5:00 PM' },
-    { id: 5, name: 'Sunday Spinners', members: 89, type: 'Casual', nextRide: 'Sun, 9:00 AM' },
-    { id: 6, name: 'Mountain Goats', members: 15, type: 'Off-road', nextRide: 'Sat, 7:00 AM' },
-    { id: 7, name: 'Downtown Commuters', members: 120, type: 'Commute', nextRide: 'Mon, 7:30 AM' }
-  ]
-  
-  const stolenBikes = [
+  const [stolenBikes, setStolenBikes] = useState([
     { 
         id: 1, 
         name: 'Trek Domane AL 2', 
@@ -74,6 +70,25 @@ function CommunityScreen() {
         desc: 'Mint condition, brand new grips.',
         status: 'Recovered' 
     }
+  ])
+
+  // Form state for reporting a stolen bike
+  const [reportForm, setReportForm] = useState({
+    name: '',
+    color: '',
+    location: '',
+    date: '',
+    time: '',
+    serial: '',
+    desc: ''
+  })
+
+  const allGroups = [
+    { id: 3, name: 'Morning Coffee Crew', members: 45, type: 'Social', nextRide: 'Tomorrow, 6:30 AM' },
+    { id: 4, name: 'Velo Racers', members: 312, type: 'Competitive', nextRide: 'Wed, 5:00 PM' },
+    { id: 5, name: 'Sunday Spinners', members: 89, type: 'Casual', nextRide: 'Sun, 9:00 AM' },
+    { id: 6, name: 'Mountain Goats', members: 15, type: 'Off-road', nextRide: 'Sat, 7:00 AM' },
+    { id: 7, name: 'Downtown Commuters', members: 120, type: 'Commute', nextRide: 'Mon, 7:30 AM' }
   ]
 
   // Filter stolen bikes
@@ -127,9 +142,51 @@ function CommunityScreen() {
   }
 
   // --- Actions ---
+  const showToast = (message) => {
+    setToastMessage(message)
+    setTimeout(() => {
+      setToastMessage(null)
+    }, 3000)
+  }
+
+  const handleJoinGroup = (group) => {
+    if (myGroups.some(g => g.id === group.id)) {
+      showToast(`You are already a member of ${group.name}!`)
+      return
+    }
+
+    const newGroup = {
+      id: group.id,
+      name: group.name,
+      role: 'Member',
+      nextRide: group.nextRide,
+      battles: 0 
+    }
+    
+    setMyGroups([newGroup, ...myGroups])
+    showToast(`Successfully joined ${group.name}!`)
+  }
+
   const handleViewGroup = (group) => {
     setSelectedGroup(groupDetails) 
     setView('group-home')
+  }
+
+  // New Modal Actions
+  const handleLeaveClick = (groupId) => {
+    setGroupToLeave(groupId) // Opens the modal
+  }
+
+  const confirmLeaveGroup = () => {
+    if (groupToLeave) {
+      setMyGroups(prevGroups => prevGroups.filter(g => g.id !== groupToLeave));
+      setGroupToLeave(null); // Close modal
+      showToast("You have left the group.");
+    }
+  }
+
+  const cancelLeaveGroup = () => {
+    setGroupToLeave(null); // Close modal
   }
 
   const handleViewBattle = (battle) => {
@@ -142,22 +199,99 @@ function CommunityScreen() {
       setView('bike-detail')
   }
 
+  const handleReportStolen = () => {
+      setView('report-form')
+  }
+
   const handleBack = () => {
     if (view === 'bike-detail') setView('list')
     else if (view === 'battle-detail') setView('group-home')
     else if (view === 'group-home') setView('list')
+    else if (view === 'report-form') setView('list')
   }
 
-  const handleReportStolen = () => {
-      alert("Opening Stolen Bike Report Form...")
+  const submitStolenReport = (e) => {
+    e.preventDefault()
+    
+    const newBike = {
+      id: Date.now(), 
+      ...reportForm,
+      image: '🚲', 
+      status: 'Stolen'
+    }
+
+    setStolenBikes([newBike, ...stolenBikes])
+    setReportForm({ name: '', color: '', location: '', date: '', time: '', serial: '', desc: '' })
+    setView('list')
+    showToast("Bike reported successfully. Community alerted!")
   }
 
   // --- Views ---
 
-  // 1. Bike Detail View (Theft Feature)
+  // 1. Report Stolen Bike Form View
+  if (view === 'report-form') {
+    return (
+      <div className="flex flex-col h-full bg-gray-50 relative">
+          <div className="bg-white p-4 border-b border-gray-200 sticky top-0 flex items-center gap-3 z-10">
+              <button onClick={handleBack} className="text-gray-500 font-bold">← Back</button>
+              <h1 className="text-lg font-bold flex-1 text-center text-red-600">Report Stolen Bike</h1>
+              <div className="w-8"></div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4">
+              <form onSubmit={submitStolenReport} className="space-y-4">
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-4">
+                      <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Bike Model / Name *</label>
+                          <input required value={reportForm.name} onChange={e => setReportForm({...reportForm, name: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="e.g. Trek Domane AL 2" />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Color *</label>
+                            <input required value={reportForm.color} onChange={e => setReportForm({...reportForm, color: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="e.g. Red & Black" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Serial Number</label>
+                            <input value={reportForm.serial} onChange={e => setReportForm({...reportForm, serial: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="Optional" />
+                        </div>
+                      </div>
+
+                      <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Last Seen Location *</label>
+                          <input required value={reportForm.location} onChange={e => setReportForm({...reportForm, location: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="e.g. Downtown Metro Station" />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Date *</label>
+                            <input type="text" required value={reportForm.date} onChange={e => setReportForm({...reportForm, date: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="e.g. Oct 24, 2023" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Time</label>
+                            <input value={reportForm.time} onChange={e => setReportForm({...reportForm, time: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="e.g. 2:00 PM" />
+                        </div>
+                      </div>
+
+                      <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Description / Distinct Features</label>
+                          <textarea value={reportForm.desc} onChange={e => setReportForm({...reportForm, desc: e.target.value})} rows="3" className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="Any stickers, scratches, or custom parts?"></textarea>
+                      </div>
+                  </div>
+
+                  <button type="submit" className="w-full bg-red-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+                      <span>🚨</span> Submit Theft Report
+                  </button>
+              </form>
+          </div>
+      </div>
+    )
+  }
+
+  // 2. Bike Detail View (Theft Feature)
   if (view === 'bike-detail' && selectedBike) {
       return (
-        <div className="flex flex-col h-full bg-gray-50">
+        <div className="flex flex-col h-full bg-gray-50 relative">
             <div className="bg-white p-4 border-b border-gray-200 sticky top-0 flex items-center gap-3 z-10">
                 <button onClick={handleBack} className="text-gray-500 font-bold">← Back</button>
                 <h1 className="text-lg font-bold flex-1 text-center text-red-600">🚨 Stolen Bike Alert</h1>
@@ -175,7 +309,7 @@ function CommunityScreen() {
                 <div className="p-4 space-y-4">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-800">{selectedBike.name}</h2>
-                        <p className="text-gray-500 text-sm">Serial: <span className="font-mono bg-gray-100 px-1 rounded">{selectedBike.serial}</span></p>
+                        <p className="text-gray-500 text-sm">Serial: <span className="font-mono bg-gray-100 px-1 rounded">{selectedBike.serial || 'Unknown'}</span></p>
                     </div>
 
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-3">
@@ -199,7 +333,7 @@ function CommunityScreen() {
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                          <h3 className="font-bold text-gray-800 mb-2">Description</h3>
                          <p className="text-gray-600 text-sm leading-relaxed">
-                             {selectedBike.desc}
+                             {selectedBike.desc || 'No description provided.'}
                          </p>
                     </div>
 
@@ -217,11 +351,11 @@ function CommunityScreen() {
       )
   }
 
-  // 2. Battle Detail View
+  // 3. Battle Detail View
   if (view === 'battle-detail' && selectedBattle) {
     return (
-      <div className="flex flex-col h-full bg-gray-50">
-        <div className="bg-white p-4 border-b border-gray-200 sticky top-0 flex items-center gap-3">
+      <div className="flex flex-col h-full bg-gray-50 relative">
+        <div className="bg-white p-4 border-b border-gray-200 sticky top-0 flex items-center gap-3 z-10">
           <button onClick={handleBack} className="text-gray-500 font-bold">← Back</button>
           <h1 className="text-lg font-bold flex-1">Battle: {selectedBattle.zone}</h1>
         </div>
@@ -273,7 +407,10 @@ function CommunityScreen() {
             </div>
           </div>
           
-          <button className="w-full py-4 bg-green-600 text-white font-bold rounded-xl shadow-lg active:scale-[0.98] transition-transform">
+          <button 
+            onClick={onStartDefending} 
+            className="w-full py-4 bg-green-600 text-white font-bold rounded-xl shadow-lg active:scale-[0.98] transition-transform"
+          >
             Ride to Defend Area 🚴
           </button>
         </div>
@@ -281,10 +418,10 @@ function CommunityScreen() {
     )
   }
 
-  // 3. Group Home Page
+  // 4. Group Home Page
   if (view === 'group-home' && selectedGroup) {
     return (
-      <div className="flex flex-col h-full bg-gray-50">
+      <div className="flex flex-col h-full bg-gray-50 relative">
         <div className="bg-white p-4 border-b border-gray-200 sticky top-0 flex items-center gap-3 z-10">
           <button onClick={handleBack} className="text-gray-500 font-bold">← Back</button>
           <h1 className="text-lg font-bold flex-1">{selectedGroup.name}</h1>
@@ -351,10 +488,34 @@ function CommunityScreen() {
     )
   }
 
-  // 4. Main List View (My Groups + Find Groups + Stolen Bikes)
+  // 5. Main List View (My Groups + Find Groups + Stolen Bikes)
   return (
-    <div id="community-screen-container" className="flex flex-col h-full bg-gray-50 relative">
+    <div id="community-screen-container" className="flex flex-col h-full bg-gray-50 relative overflow-hidden">
       
+      {/* --- IN-APP CONFIRMATION MODAL --- */}
+      {groupToLeave && (
+        <div className="absolute inset-0 z-[3000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in-up">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Leave Group?</h3>
+            <p className="text-gray-600 text-sm mb-6">Are you sure you want to leave this group? You will lose access to group chats, rides, and battles.</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={cancelLeaveGroup} 
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl transition-colors active:scale-95"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmLeaveGroup} 
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-colors active:scale-95"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- RENDER ONBOARDING TOUR --- */}
       {tourReady && view === 'list' && activeTab === 'my-groups' && (
         <OnboardingOverlay 
@@ -364,11 +525,17 @@ function CommunityScreen() {
         />
       )}
 
+      {/* --- CLEAN BANNER NOTIFICATION --- */}
+      {toastMessage && (
+        <div className="absolute top-0 left-0 right-0 w-full bg-green-600 text-white px-4 py-3 shadow-md z-[2000] text-sm font-bold text-center transition-all duration-300">
+          {toastMessage}
+        </div>
+      )}
+
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <h1 className="text-2xl font-bold text-gray-800 p-4 pb-2">Community</h1>
         <div className="flex px-4 gap-6 overflow-x-auto">
           
-          {/* UPDATED: We wrap ONLY the group tabs inside the ID used for the tour targeting */}
           <div id="tour-community-tabs" className="flex gap-6">
             <button 
               onClick={() => setActiveTab('my-groups')}
@@ -384,7 +551,6 @@ function CommunityScreen() {
             </button>
           </div>
 
-          {/* Stolen Bikes sits outside the highlighted wrapper */}
           <button 
             id="tour-community-theft-tab"
             onClick={() => setActiveTab('stolen-bikes')}
@@ -398,35 +564,45 @@ function CommunityScreen() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {activeTab === 'my-groups' && (
           <div className="space-y-4">
-            {myGroups.map((group, index) => (
-              <div 
-                key={group.id} 
-                id={index === 0 ? 'tour-community-group' : undefined} 
-                className="bg-white p-5 rounded-xl shadow-sm border border-gray-200"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-xl text-gray-800">{group.name}</h3>
-                  <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">{group.role}</span>
-                </div>
-                
-                <div className="text-sm text-gray-500 mb-4 space-y-1">
-                  <div>📅 Next Ride: <span className="text-gray-800 font-medium">{group.nextRide}</span></div>
-                  <div>⚔️ Active Battles: <span className={`${group.battles > 0 ? 'text-red-500' : 'text-gray-400'} font-bold`}>{group.battles}</span></div>
-                </div>
+            {myGroups.length === 0 ? (
+               <div className="text-center py-10">
+                   <span className="text-4xl block mb-2">🚴</span>
+                   <p className="text-sm font-bold text-gray-500">You haven't joined any groups yet.</p>
+               </div>
+            ) : (
+              myGroups.map((group, index) => (
+                <div 
+                  key={group.id} 
+                  id={index === 0 ? 'tour-community-group' : undefined} 
+                  className="bg-white p-5 rounded-xl shadow-sm border border-gray-200"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-xl text-gray-800">{group.name}</h3>
+                    <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">{group.role}</span>
+                  </div>
+                  
+                  <div className="text-sm text-gray-500 mb-4 space-y-1">
+                    <div>📅 Next Ride: <span className="text-gray-800 font-medium">{group.nextRide}</span></div>
+                    <div>⚔️ Active Battles: <span className={`${group.battles > 0 ? 'text-red-500' : 'text-gray-400'} font-bold`}>{group.battles}</span></div>
+                  </div>
 
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => handleViewGroup(group)}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm shadow-sm active:bg-blue-700"
-                  >
-                    View Group
-                  </button>
-                  <button className="px-4 py-2 border border-gray-300 text-gray-500 rounded-lg font-bold text-sm bg-white">
-                    Leave
-                  </button>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => handleViewGroup(group)}
+                      className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm shadow-sm active:bg-blue-700"
+                    >
+                      View Group
+                    </button>
+                    <button 
+                      onClick={() => handleLeaveClick(group.id)} // CHANGED HERE: Now opens modal
+                      className="px-4 py-2 border border-gray-300 text-gray-500 rounded-lg font-bold text-sm bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                    >
+                      Leave
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
             
             <div className="text-center mt-8 p-4">
               <p className="text-gray-400 text-sm mb-2">Want to join more crews?</p>
@@ -468,7 +644,10 @@ function CommunityScreen() {
                      📅 Ride: {group.nextRide}
                    </div>
                  </div>
-                 <button className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors">
+                 <button 
+                   onClick={() => handleJoinGroup(group)} 
+                   className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors"
+                 >
                    Join
                  </button>
                </div>

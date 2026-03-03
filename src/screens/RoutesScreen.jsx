@@ -46,7 +46,7 @@ function MapPreview({ coordinates }) {
     return <div ref={mapRef} className="w-full h-full z-0" />
 }
 
-function RoutesScreen({ onStartRoute }) {
+function RoutesScreen({ onStartRoute, onCreateNewRoute }) {
     const [view, setView] = useState('list') // 'list' or 'detail'
     const [selectedRoute, setSelectedRoute] = useState(null)
     const [searchTerm, setSearchTerm] = useState('')
@@ -269,7 +269,6 @@ function RoutesScreen({ onStartRoute }) {
 
     // --- List View ---
     return (
-        // Added 'routes-screen-container' ID for measuring bounding boxes in the OnboardingOverlay
         <div id="routes-screen-container" className="flex flex-col h-full bg-gray-50 relative">
             
             {/* --- RENDER ONBOARDING TOUR --- */}
@@ -277,7 +276,7 @@ function RoutesScreen({ onStartRoute }) {
                 <OnboardingOverlay 
                     screenKey="routes_tour" 
                     steps={routesTour} 
-                    containerId="routes-screen-container" // Let the overlay know which container to use for coordinates
+                    containerId="routes-screen-container" 
                 />
             )}
 
@@ -286,17 +285,15 @@ function RoutesScreen({ onStartRoute }) {
                 <div className="p-4 pb-2">
                     <div className="flex justify-between items-center mb-4">
                         <h1 className="text-2xl font-bold text-gray-800">Routes</h1>
-                        {/* Added 'tour-routes-create' ID here for onboarding targeting */}
                         <button 
                             id="tour-routes-create"
-                            onClick={() => alert("Add New Route Flow")}
+                            onClick={onCreateNewRoute}
                             className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-700 transition-colors"
                         >
                             + Create
                         </button>
                     </div>
                     
-                    {/* Added 'tour-routes-search' ID here for onboarding targeting */}
                     <div id="tour-routes-search" className="bg-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 focus-within:ring-2 focus-within:ring-blue-500 transition-all">
                         <span className="text-gray-400 text-lg">🔍</span>
                         <input 
@@ -310,7 +307,6 @@ function RoutesScreen({ onStartRoute }) {
                 </div>
 
                 {/* Tabs */}
-                {/* Added 'tour-routes-tabs' ID here for onboarding targeting */}
                 <div id="tour-routes-tabs" className="flex px-4 mt-2">
                     <button 
                         onClick={() => setActiveTab('official')}
@@ -348,7 +344,6 @@ function RoutesScreen({ onStartRoute }) {
                             }}
                             className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden active:scale-[0.99] transition-transform cursor-pointer"
                         >
-                            {/* Real Mini Map Preview */}
                             <div className="h-32 bg-gray-200 relative pointer-events-none">
                                 <MapPreview coordinates={route.coordinates} />
                                 <div className="absolute top-2 right-2 bg-black/60 backdrop-blur text-white px-2 py-1 rounded text-[10px] font-bold z-10">
