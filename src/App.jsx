@@ -50,7 +50,14 @@ function App() {
           />
         )
       case 'profile':
-        return <ProfileScreen />
+        return (
+          <ProfileScreen 
+            onStartDefending={() => {
+              setIsDefending(true)
+              setCurrentTab('home')
+            }}
+          />
+        )
       default:
         return (
           <HomeScreen 
@@ -101,4 +108,4 @@ function App() {
   )
 }
 
-export default App
+export default App  
