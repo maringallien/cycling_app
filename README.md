@@ -32,7 +32,7 @@ To get the project running locally, follow these steps:
 1. **Clone the repository**:
 
 ```sql
-git clone https://github.com/maringallien/cycling_app
+git clone https://github.com/maringallien/cyclingApp
 cd cycleapp
 ```
 
